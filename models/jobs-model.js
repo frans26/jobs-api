@@ -100,7 +100,7 @@ const jobsSchema = new mongoose.Schema({
         }
     },
     salary: {
-        type: String,
+        type: Number,
         required: 'Please enter expected salary for this job.'
     },
     postingDate: {
