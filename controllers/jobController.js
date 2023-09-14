@@ -1,7 +1,10 @@
 const Job = require('../models/jobs-model');
 const geocoder = require('../utils/geocoder');
 
-exports.getJobs = async (req, res, next) => {
+const ErrorHandler = require('../utils/errorHandler');
+const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
+
+exports.getJobs = catchAsyncErrors(async (req, res, next) => {
     const jobs = await Job.find();
 
     res.status(200).json({
@@ -9,26 +12,19 @@ exports.getJobs = async (req, res, next) => {
         results: jobs.length,
         data: jobs
     });
-}
+});
 
-exports.addJob = (req, res, next) => {
-    try {
-        const job = Job.create(req.body);
+exports.addJob = catchAsyncErrors(async (req, res, next) => {
+    const job = await Job.create(req.body);
 
-        res.status(201).json({
-            success: true,
-            message: 'job created',
-            data: job,
-        });
-    } catch (error) {
-        res.status(400).json({
-            success: false,
-            message: error.message
-        });
-    }
-}
+    res.status(201).json({
+        success: true,
+        message: 'job created',
+        data: job,
+    });
+});
 
-exports.getJobsInRadius = async (req, res, next) => {
+exports.getJobsInRadius = catchAsyncErrors(async (req, res, next) => {
     const {zipcode, distance} = req.params;
 
     const loc = await geocoder.geocode(zipcode);
@@ -46,38 +42,28 @@ exports.getJobsInRadius = async (req, res, next) => {
         results: jobs.length,
         data: jobs
     });
-}
+});
 
-exports.updateJob = async (req, res, next) => {
-    try {
-        const job = await Job.findById(req.params.id);
+exports.updateJob = catchAsyncErrors(async (req, res, next) => {
+    const job = await Job.findById(req.params.id);
 
-        if (job) {
-            const updatedJob = await Job.findByIdAndUpdate(req.params.id, req.body, {
-                new: true,
-                runValidators: true
-            });
-
-            res.status(200).json({
-                success: true,
-                message: 'Job updated',
-                data: updatedJob
-            });
-        } else {
-            res.status(404).json({
-                success: false,
-                message: 'Job not found'
-            });
-        }
-    } catch (error) {
-        res.status(400).json({
-            success: false,
-            message: error.message
+    if (job) {
+        const updatedJob = await Job.findByIdAndUpdate(req.params.id, req.body, {
+            new: true,
+            runValidators: true
         });
-    }
-}
 
-exports.deleteJob = async (req, res, next) => {
+        res.status(200).json({
+            success: true,
+            message: 'Job updated',
+            data: updatedJob
+        });
+    } else {
+        next(new ErrorHandler('Job not found', 404))
+    }
+});
+
+exports.deleteJob = catchAsyncErrors(async (req, res, next) => {
     const job = await Job.findById(req.params.id);
 
     if (job) {
@@ -88,15 +74,11 @@ exports.deleteJob = async (req, res, next) => {
             message: 'Job deleted'
         });
     } else {
-        res.status(404).json({
-            success: false,
-            message: 'Job not found'
-        });
+        next(new ErrorHandler('Job not found', 404))
     }
-}
+});
 
-
-exports.getJob = async (req, res, next) => {
+exports.getJob = catchAsyncErrors(async (req, res, next) => {
     const job = await Job.findById(req.params.id);
 
     if (job) {
@@ -105,14 +87,11 @@ exports.getJob = async (req, res, next) => {
             data: job,
         });
     } else {
-        res.status(404).json({
-            success: false,
-            message: 'Job not found'
-        });
+        return next(new ErrorHandler('Job not found', 404))
     }
-}
+});
 
-exports.getJobStats = async (req, res, next) => {
+exports.getJobStats = catchAsyncErrors(async (req, res, next) => {
     const stats = await Job.aggregate([
         {
             $match: {
@@ -156,4 +135,4 @@ exports.getJobStats = async (req, res, next) => {
             message: 'No stats found'
         });
     }
-}
+});
